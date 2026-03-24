@@ -1,0 +1,74 @@
+# from sqlalchemy import create_engine, text
+# from config import settings
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import URL, create_engine, text
+from config import settings
+import asyncio
+
+# Используем тот же URL, который мы проверили
+# url = settings.DATABASE_URL_psycopg
+# print(f"Подключаюсь к: {url}")
+
+# engine = create_engine(
+#     url=url,
+#     echo=True,
+# )
+
+async_engine = create_async_engine(
+    url=settings.DATABASE_URL_asyncpg,
+    echo=False
+)
+
+sync_engine = create_engine(
+    url=settings.DATABASE_URL_psycopg,
+    echo=False,
+    # pool_size=5,
+    # max_overflow=10
+)
+
+async def get_123():
+    async with async_engine.connect() as conn:
+        res = await conn.execute(text("SELECT 1,2,3 union select 4,5,6"))
+        print(f"{res.first()=}")
+
+asyncio.run(get_123())
+
+
+'''with sync_engine.connect() as conn:
+    # res = conn.execute(text("SELECT VERSION()"))
+    # print(f"{res=}")            res=<sqlalchemy.engine.cursor.CursorResult object at 0x0000021FB6982D60>
+    # print(f""{res.all()=}")     res.all()=[('PostgreSQL 18.3 on x86_64-windows, compiled by msvc-19.44.35223, 64-bit',)]
+    # print(f"{res.first()=}")    res.first()=('PostgreSQL 18.3 on x86_64-windows, compiled by msvc-19.44.35223, 64-bit',)
+    # print(f"{res.first()[0]=}") res.first()[0]='PostgreSQL 18.3 on x86_64-windows, compiled by msvc-19.44.35223, 64-bit'
+    res = conn.execute(text("SELECT 1,2,3 union select 4,5,6"))  # сырой запрос - ускоряет работу алхимии, 
+                                                                 # т.к. запрос не проходит стадии перехода 
+    print(f"{res.all()=}")      # res.all()=[(1, 2, 3), (4, 5, 6)]
+
+    # conn.commit()  если нужен commit вместо begin'''
+
+
+
+# try:
+#     with engine.connect() as conn:
+#         result = conn.execute(text("SELECT VERSION()"))
+#         version = result.fetchone()
+#         print(f"\n✅ Успешно подключено!")
+#         print(f"Версия: {version[0]}\n")
+# except Exception as e:
+#     print(f"\n❌ Ошибка: {e}")
+#     import traceback
+#     traceback.print_exc()\
+
+
+# with Session(sync_engine) as session:
+#     session.get  если бы мы не использовали фабрику sessionmaker 
+
+session = sessionmaker(sync_engine)
+async_session = async_sessionmaker(async_engine)
+
+with session() as session:
+    session
+
+async with async_session() as session:
+    await session
